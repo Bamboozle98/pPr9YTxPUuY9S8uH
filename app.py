@@ -14,7 +14,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 # ------------- Data Loading ------------- #
 @st.cache_data
-def load_data(uploaded_file=None, fallback_path: str = r"C:\Users\cbran\PycharmProjects\pPr9YTxPUuY9S8uH\data\raw\term-deposit-marketing-2020.csv"):
+def load_data(uploaded_file=None, fallback_path: str = "data/raw/term-deposit-marketing-2020.csv"):
     if uploaded_file is not None:
         return pd.read_csv(uploaded_file)
 
