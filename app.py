@@ -181,8 +181,8 @@ def compute_numeric_effects_vs_target(df: pd.DataFrame, numeric_cols, target_col
 
 @st.cache_resource
 def load_trained_mlp(
-    model_path: str = r"C:\Users\cbran\PycharmProjects\pPr9YTxPUuY9S8uH\src\models\Default\Saved model states\models\mlp_best.joblib",
-    encoder_path: str = r"C:\Users\cbran\PycharmProjects\pPr9YTxPUuY9S8uH\src\models\Default\Saved model states\encoders\encoder.joblib",
+    model_path: str = "src/models/Default/Saved model states/encoders/encoder.joblib\mlp_best.joblib",
+    encoder_path: str = "src/models/Default/Saved model states/encoders/encoder.joblib\encoder.joblib",
 ):
     """
     Load the already-trained MLP model and encoder from disk.
