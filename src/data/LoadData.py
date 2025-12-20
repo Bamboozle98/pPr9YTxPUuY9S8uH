@@ -70,7 +70,7 @@ def load_data():
     cat_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
     # Columns to standardize
-    num_cols_to_scale = ['balance', 'age', 'duration']
+    num_cols_to_scale = ['balance', 'age']
 
     # Build ColumnTransformer
     encoder = ColumnTransformer(
