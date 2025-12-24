@@ -476,8 +476,9 @@ def main():
                     "This page serves as an interactive “what-if” tool, helping users understand how individual variables influence model predictions and allowing them to test different scenarios without exposing any real training data.")
 
         st.markdown(
-        # Create an **imaginary customer** and let the pre-trained MLP model predict whether they would subscribe (`y`).
-
+        """
+        Create an **imaginary customer** and let the pre-trained MLP model predict whether they would subscribe (`y`).
+        """
         )
 
         # Load pre-trained MLP + encoder
