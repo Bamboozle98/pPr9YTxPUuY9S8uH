@@ -238,11 +238,10 @@ def main():
     if tab_choice == "Overview":
         st.subheader("Dataset Overview")
         st.markdown("This page provides a high-level snapshot of the dataset, highlighting its size, structure, "
-                    "and overall composition. The metrics at the top summarize how many records and features are available, "
-                    "while the accompanying column overview describes the data types, missing values, and unique value counts across all attributes. "
-                    "The pie chart illustrates the distribution of the target variable—subscribers versus non-subscribers—allowing users to quickly assess class balance. "
-                    "Users can hover over chart segments for detailed percentages, and the enlarged visual makes it easy to interpret proportions at a glance. "
-                    "This page is a starting point for understanding the dataset’s shape before performing deeper analysis.")
+                    "and overall composition. The metrics at the top summarize how many data entries and features are available, "
+                    "while the accompanying column overview describes the data types, missing values, and unique value counts across all features. "
+                    "The pie chart illustrates the distribution of the target variable, subscribers versus non-subscribers, demonstrating a clear imbalance between the two classes. "
+                    "The following pages will prvoide a greater understanding of the dataset’s shape before performing deeper analysis.")
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -320,10 +319,9 @@ def main():
     elif tab_choice == "Summary":
         st.subheader("Summary Statistics & Association Measures")
         st.markdown("The Summary Statistics page provides a comprehensive statistical profile of the dataset. "
-                    "Numeric features include aggregated values such as the mean, median, minimum, maximum, and standard deviation, enabling quick identification of central trends and potential outliers. "
-                    "Additional association metrics—Cramér’s V for categorical variables, Mann–Whitney U statistics, Cliff’s Delta effect sizes, and Variance Inflation Factors—offer deeper insight into feature importance, group separation, and multicollinearity. "
-                    "Scientific notation is used to present statistical test values clearly, especially when results are very small or large. "
-                    "This page establishes the analytical foundation needed to understand feature relationships before moving to visual exploration.")
+                    "Numeric features include aggregated values such as the mean, median, minimum, maximum, and standard deviation, outlining central trends and potential outliers. "
+                    "Additional association metrics including Cramér’s V for categorical variables, Mann–Whitney U statistics, Cliff’s Delta effect sizes, and Variance Inflation Factors offer insight into feature importance, group separation, and multicollinearity. "
+                    "This page represents the analytical foundation of the EDA needed to understand feature relationships before moving to modeling.")
 
         # ---- Overall numeric summary ----
         if numeric_cols:
@@ -378,10 +376,9 @@ def main():
     # ===================== 2D SCATTER ===================== #
     elif tab_choice == "2D Scatter":
         st.subheader("Interactive 2D Scatter Plots")
-        st.markdown("This interactive page allows users to visualize relationships between two numeric features through customizable 2D scatter plots. "
+        st.markdown("This page allows users to visualize relationships between two numeric features through customizable 2D scatter plots. "
                     "Users can select the X- and Y-axes and optionally color points by the target variable or any other feature. "
                     "This helps reveal potential clusters, linear or nonlinear patterns, and separability between subscribers and non-subscribers. "
-                    "Hovering over points provides additional contextual details, making it easier to interpret local relationships. "
                     "By experimenting with different variable combinations, users can explore data trends that may not be immediately obvious from summary statistics alone.")
 
         if len(numeric_cols) < 2:
@@ -416,10 +413,10 @@ def main():
     # ===================== 3D SCATTER ===================== #
     elif tab_choice == "3D Scatter":
         st.subheader("Interactive 3D Scatter Plots")
-        st.markdown("The 3D Scatter Plot page extends visual exploration into a three-dimensional space, allowing deeper insight into how multiple features interact simultaneously. "
-                    "Users can freely rotate, pan, zoom, and inspect points to examine complex patterns or separations between subscription classes. "
+        st.markdown("The 3D Scatter Plot page expand visual exploration into a three-dimensional space, allowing insight into how multiple features interact simultaneously. "
+                    "Users can freely rotate, pan, zoom, and inspect points to examine patterns or separations between subscription classes. "
                     "Controls on the sidebar make it easy to switch axes and color mappings, enabling quick comparisons across many variable combinations. "
-                    "Because this plot is rendered at a larger size, it provides a clear and flexible way to examine multidimensional feature behavior that would otherwise be difficult to visualize in 2D.")
+                    )
 
         if len(numeric_cols) < 3:
             st.warning("You need at least three numeric columns.")
@@ -471,9 +468,9 @@ def main():
 
         st.subheader("🤖 Model Playground: What-if Prediction")
         st.markdown("The Model Playground enables users to experiment with predictive modeling using an imaginary customer profile. "
-                    "All sliders and dropdowns correspond to the same preprocessed features used during model training, ensuring consistent inference. "
+                    "All sliders and dropdowns correspond to the same preprocessed features used during model training. "
                     "After the user defines a synthetic input, the saved MLP model processes the data and predicts whether the hypothetical customer would subscribe, alongside class probabilities. "
-                    "This page serves as an interactive “what-if” tool, helping users understand how individual variables influence model predictions and allowing them to test different scenarios without exposing any real training data.")
+                    "This page serves as an interactive “what-if” tool, helping us understand how individual variables influence model predictions and allowing them to test different scenarios without exposing any real training data.")
 
         st.markdown(
         """
@@ -572,7 +569,6 @@ def main():
 
             # --- helper: map model output to True/False + friendly text ---
             def as_bool_and_label(pred):
-                # pred might be "yes"/"no", 1/0, True/False, etc.
                 if isinstance(pred, str):
                     p = pred.strip().lower()
                     if p in {"yes", "y", "true", "1"}:
@@ -595,7 +591,7 @@ def main():
                 proba = mlp.predict_proba(X_new)[0]
                 class_probs = dict(zip(mlp.classes_, proba))
 
-                # try common class labels
+                # common class labels
                 if "yes" in class_probs:
                     p_yes = float(class_probs["yes"])
                     p_no = float(class_probs.get("no", 1 - p_yes))
@@ -629,7 +625,7 @@ def main():
                 )
 
             st.caption(
-                "This is a model-based estimate from your pre-trained MLP using the same preprocessing pipeline as training."
+                "This is a model-based estimate from a pre-trained MLP using the same preprocessing pipeline as training."
             )
 
 
