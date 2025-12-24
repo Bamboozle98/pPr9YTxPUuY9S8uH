@@ -5,8 +5,6 @@ from pathlib import Path
 import joblib
 import plotly.express as px
 from src.data.LoadData import add_time_bins
-
-# New imports for stats
 from scipy.stats import chi2_contingency, mannwhitneyu
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
@@ -28,11 +26,8 @@ def load_data(uploaded_file=None, fallback_path: str = "data/raw/term-deposit-ma
 
 @st.cache_data
 def load_dataset_for_app(uploaded_file=None, fallback_path: str = "data/raw/term-deposit-marketing-2020.csv"):
-    """
-    Load the *raw* term deposit CSV,
-    apply the same add_time_bins() preprocessing used for training,
-    and return a DataFrame with engineered features + original y.
-    """
+    # Load the dataset with same preprocessing as the model.
+    # This is for the interactive model prediction on the last page.
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
     else:
@@ -44,13 +39,9 @@ def load_dataset_for_app(uploaded_file=None, fallback_path: str = "data/raw/term
             return None
         df = pd.read_csv(csv_path)
 
-    # ✅ Apply the exact same feature engineering as in training
     df = add_time_bins(df)
 
-    # We do NOT encode or scale here; that's handled by the saved encoder.
-    # y stays as 'yes'/'no' for display/stats.
     return df
-
 
 
 def get_column_types(df: pd.DataFrame):
@@ -61,16 +52,13 @@ def get_column_types(df: pd.DataFrame):
 
 # ------------- Stat Helper Functions ------------- #
 def compute_cramers_v(df: pd.DataFrame, categorical_cols, target_col="y"):
-    """
-    Compute Cramér's V for each categorical feature vs a categorical target (y).
-    """
+    # Compute Cramér's V for each categorical feature vs a categorical target y.
     rows = []
     for col in categorical_cols:
         if col == target_col:
             continue
 
         ct = pd.crosstab(df[col], df[target_col])
-        # Need at least 2x2 table
         if ct.shape[0] < 2 or ct.shape[1] < 2:
             continue
 
@@ -102,9 +90,7 @@ def compute_cramers_v(df: pd.DataFrame, categorical_cols, target_col="y"):
 
 
 def compute_vif(df: pd.DataFrame, numeric_cols):
-    """
-    Compute VIF for each numeric feature.
-    """
+    # Compute VIF for each numeric feature.
     if not numeric_cols:
         return pd.DataFrame(columns=["feature", "VIF"])
 
@@ -129,19 +115,14 @@ def compute_vif(df: pd.DataFrame, numeric_cols):
 
 
 def compute_numeric_effects_vs_target(df: pd.DataFrame, numeric_cols, target_col="y"):
-    """
-    For each numeric feature, compute:
-      - Group means by target (two levels)
-      - Mann–Whitney U statistic and p-value
-      - Cliff's Delta (derived from U)
-    """
+    # Compute means, Mann-Whitney U, p-value, and Cliff's Delta for all numeric features.
     if target_col not in df.columns:
         return pd.DataFrame()
 
     # Get binary groups
     groups = df[target_col].dropna().unique()
     if len(groups) != 2:
-        # Only defined for binary targets in this context
+        # Only defined for binary targets
         return pd.DataFrame()
 
     g1, g2 = groups[0], groups[1]
@@ -184,9 +165,7 @@ def load_trained_mlp(
     model_path: str = "src/models/Default/Saved model states/models/mlp_best.joblib",
     encoder_path: str = "src/models/Default/Saved model states/encoders/encoder.joblib",
 ):
-    """
-    Load the already-trained MLP model and encoder from disk.
-    """
+    # Load the already-trained MLP model and encoder.
     model_file = Path(model_path)
     enc_file = Path(encoder_path)
 
@@ -201,13 +180,13 @@ def load_trained_mlp(
     return mlp, encoder
 
 
+def pretty(col):
+    # Clean up columns pulled from the dataset.
+    return col.replace("_", " ").title()
+
+
 def sci_notation(df, cols, precision=3):
-    """
-    Format selected columns in scientific notation.
-    - df: pandas DataFrame
-    - cols: list of column names to convert
-    - precision: number of digits in mantissa
-    """
+    # Convert numerics to scientific notation for readability.
     df = df.copy()
     for c in cols:
         if c in df.columns:
@@ -317,21 +296,21 @@ def main():
             names=labels,
             values=values,
             title=f"Subscription Breakdown ({target_col})",
-            hole=0.35,  # optional: semi-donut look
+            hole=0.35,
         )
 
-        # Make the pie chart bigger & add inside labels
+        # Make the pie chart bigger
         fig_pie.update_traces(
             textinfo="label+percent",
             textfont_size=18,
-            pull=[0.04 if lbl == labels[0] else 0 for lbl in labels]  # slight emphasis (optional)
+            pull=[0.04 if lbl == labels[0] else 0 for lbl in labels]
         )
 
         fig_pie.update_layout(
-            height=600,  # ← makes it bigger
-            width=600,  # ← makes it bigger
+            height=600,
+            width=600,
             legend_title_text="Subscription Status",
-            title_x=0.5,  # center the title
+            title_x=0.5,
             margin=dict(t=50, b=50, l=10, r=10)
         )
 
@@ -408,9 +387,20 @@ def main():
         if len(numeric_cols) < 2:
             st.warning("You need at least two numeric columns.")
         else:
-            x_axis = st.selectbox("X-axis", numeric_cols, key="2d_x")
-            y_axis = st.selectbox("Y-axis", numeric_cols, key="2d_y")
-            color = st.selectbox("Color by", [target_col] + numeric_cols + categorical_cols, key="2d_c")
+            # Build display mappings
+            x_options = {pretty(c): c for c in numeric_cols}
+            y_options = {pretty(c): c for c in numeric_cols}
+            c_options = {pretty(c): c for c in [target_col] + numeric_cols + categorical_cols}
+
+            # Selectboxes
+            x_label = st.selectbox("X-axis", x_options.keys(), key="2d_x")
+            y_label = st.selectbox("Y-axis", y_options.keys(), key="2d_y")
+            c_label = st.selectbox("Color by", c_options.keys(), key="2d_c")
+
+            # Recover original column names
+            x_axis = x_options[x_label]
+            y_axis = y_options[y_label]
+            color = c_options[c_label]
 
             fig2d = px.scatter(
                 df,
@@ -451,8 +441,8 @@ def main():
             fig3d.update_traces(marker=dict(size=4))
 
             fig3d.update_layout(
-                height=800,  # make it much taller
-                width=1200,  # optional—only needed if you remove container_width
+                height=800,
+                width=1200,
                 margin=dict(t=50, l=0, r=0, b=0)
             )
 
@@ -539,7 +529,6 @@ def main():
             # Build a single-row DataFrame with the SAME columns as training X
             new_row = pd.DataFrame([user_inputs])
 
-            # 🔑 This encoder was fit on the *raw, add_time_bins-processed* X.
             X_new = encoder.transform(new_row)
             if hasattr(X_new, "toarray"):
                 X_new = X_new.toarray()
