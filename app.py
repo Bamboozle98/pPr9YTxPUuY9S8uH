@@ -463,9 +463,11 @@ def main():
 
     # ===================== MODEL PLAYGROUND ===================== #
     elif tab_choice == "Model":
-        for k in list(st.session_state.keys()):
-            if k.startswith("model_"):
-                del st.session_state[k]
+        if "model_widget_version" not in st.session_state:
+            st.session_state.model_widget_version = 1
+
+        if st.button("Reset Model Inputs"):
+            st.session_state.model_widget_version += 1
 
         st.subheader("🤖 Model Playground: What-if Prediction")
         st.markdown("The Model Playground enables users to experiment with predictive modeling using an imaginary customer profile. "
@@ -498,11 +500,13 @@ def main():
         user_inputs = {}
         col_left, col_right = st.columns(2)
 
+        ver = st.session_state.model_widget_version
+
         for i, col in enumerate(feature_cols):
             series = df_2[col]
             container = col_left if i % 2 == 0 else col_right
-
             display_name = pretty(col)
+            key_base = f"model_v{ver}_{col}"
 
             with container:
                 if pd.api.types.is_numeric_dtype(series):
@@ -512,38 +516,28 @@ def main():
 
                     if pd.api.types.is_integer_dtype(series):
                         user_val = st.slider(
-                            label=f"{display_name}",
+                            label=display_name,
                             min_value=int(col_min),
                             max_value=int(col_max),
                             value=int(round(col_mean)),
-                            key=f"model_{col}",  # important: stable unique key
+                            key=key_base,
                         )
                     else:
                         user_val = st.slider(
-                            label=f"{display_name}",
+                            label=display_name,
                             min_value=col_min,
                             max_value=col_max,
                             value=col_mean,
-                            key=f"model_{col}",
+                            key=key_base,
                         )
                 else:
                     unique_vals = sorted(series.dropna().unique().tolist())
                     if not unique_vals:
-                        user_val = st.text_input(
-                            label=f"{display_name}",
-                            value="",
-                            key=f"model_{col}",
-                        )
+                        user_val = st.text_input(display_name, "", key=key_base)
                     else:
-                        user_val = st.selectbox(
-                            label=f"{display_name}",
-                            options=unique_vals,
-                            index=0,
-                            key=f"model_{col}",
-                        )
+                        user_val = st.selectbox(display_name, unique_vals, index=0, key=key_base)
 
-                # keep the REAL column name in the dict
-                user_inputs[col] = user_val
+            user_inputs[col] = user_val
 
         st.markdown("#### 2. Predict Subscription Outcome")
 
