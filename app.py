@@ -424,10 +424,23 @@ def main():
         if len(numeric_cols) < 3:
             st.warning("You need at least three numeric columns.")
         else:
-            x_axis = st.selectbox("X-axis", numeric_cols, key="3d_x")
-            y_axis = st.selectbox("Y-axis", numeric_cols, key="3d_y")
-            z_axis = st.selectbox("Z-axis", numeric_cols, key="3d_z")
-            color = st.selectbox("Color by", [target_col] + numeric_cols + categorical_cols, key="3d_c")
+            # Build display → actual column mappings
+            x3d_opts = {pretty(c): c for c in numeric_cols}
+            y3d_opts = {pretty(c): c for c in numeric_cols}
+            z3d_opts = {pretty(c): c for c in numeric_cols}
+            c3d_opts = {pretty(c): c for c in [target_col] + numeric_cols + categorical_cols}
+
+            # Selectboxes
+            x3d_label = st.selectbox("X-axis", x3d_opts.keys(), key="3d_x")
+            y3d_label = st.selectbox("Y-axis", y3d_opts.keys(), key="3d_y")
+            z3d_label = st.selectbox("Z-axis", z3d_opts.keys(), key="3d_z")
+            c3d_label = st.selectbox("Color by", c3d_opts.keys(), key="3d_c")
+
+            # Recover original column names
+            x_axis = x3d_opts[x3d_label]
+            y_axis = y3d_opts[y3d_label]
+            z_axis = z3d_opts[z3d_label]
+            color = c3d_opts[c3d_label]
 
             fig3d = px.scatter_3d(
                 df,
@@ -490,6 +503,8 @@ def main():
             series = df_2[col]
             container = col_left if i % 2 == 0 else col_right
 
+            display_name = pretty(col)
+
             with container:
                 if pd.api.types.is_numeric_dtype(series):
                     col_min = float(series.min())
@@ -498,29 +513,37 @@ def main():
 
                     if pd.api.types.is_integer_dtype(series):
                         user_val = st.slider(
-                            label=f"{col} (numeric)",
+                            label=f"{display_name}",
                             min_value=int(col_min),
                             max_value=int(col_max),
                             value=int(round(col_mean)),
+                            key=f"model_{col}",  # important: stable unique key
                         )
                     else:
                         user_val = st.slider(
-                            label=f"{col} (numeric)",
+                            label=f"{display_name}",
                             min_value=col_min,
                             max_value=col_max,
                             value=col_mean,
+                            key=f"model_{col}",
                         )
                 else:
                     unique_vals = sorted(series.dropna().unique().tolist())
                     if not unique_vals:
-                        user_val = st.text_input(f"{col} (text)", "")
+                        user_val = st.text_input(
+                            label=f"{display_name}",
+                            value="",
+                            key=f"model_{col}",
+                        )
                     else:
                         user_val = st.selectbox(
-                            label=f"{col} (categorical)",
+                            label=f"{display_name}",
                             options=unique_vals,
                             index=0,
+                            key=f"model_{col}",
                         )
 
+                # keep the REAL column name in the dict
                 user_inputs[col] = user_val
 
         st.markdown("#### 2. Predict Subscription Outcome")
