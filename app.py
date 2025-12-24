@@ -282,6 +282,15 @@ def main():
             overview_rows.append(row)
 
         overview_df = pd.DataFrame(overview_rows).set_index("column")
+        overview_df = overview_df.rename(columns={
+            "dtype": "Data Type",
+            "missing_count": "Missing Values (Count)",
+            "unique_values": "Unique Values (How many different values)",
+            "min": "Lowest Value",
+            "max": "Highest Value",
+            "mean": "Average",
+            "median": "Middle Value (Median)",
+        })
 
         st.dataframe(overview_df, use_container_width=True)
 
@@ -317,61 +326,104 @@ def main():
 
     # ===================== SUMMARY STATS ===================== #
     elif tab_choice == "Summary":
-        st.subheader("Summary Statistics & Association Measures")
-        st.markdown("The Summary Statistics page provides a comprehensive statistical profile of the dataset. "
-                    "Numeric features include aggregated values such as the mean, median, minimum, maximum, and standard deviation, outlining central trends and potential outliers. "
-                    "Additional association metrics including Cramér’s V for categorical variables, Mann–Whitney U statistics, Cliff’s Delta effect sizes, and Variance Inflation Factors offer insight into feature importance, group separation, and multicollinearity. "
-                    "This page represents the analytical foundation of the EDA needed to understand feature relationships before moving to modeling.")
+        st.subheader("Summary Statistics & Relationships")
+
+        st.markdown(
+            "This page summarizes the dataset in plain language. "
+            "**Numeric columns** show common summaries (average, median, lowest/highest values, and spread). "
+            "Then we compare each feature to the outcome (`y`) to see which ones look meaningfully different between "
+            "subscribers and non-subscribers. "
+            "For categorical features, we report how strongly each category is associated with subscribing."
+        )
 
         # ---- Overall numeric summary ----
         if numeric_cols:
-            st.markdown("#### Overall Numeric Summary")
-            st.write(df[numeric_cols].describe().T)
+            st.markdown("#### Overall Numeric Summary (Easy-to-read)")
+
+            numeric_summary = df[numeric_cols].describe().T.rename(columns={
+                "count": "Non-Missing Count",
+                "mean": "Average",
+                "std": "Spread (Std Dev)",
+                "min": "Lowest Value",
+                "25%": "25th Percentile (Lower Quartile)",
+                "50%": "Median (Middle Value)",
+                "75%": "75th Percentile (Upper Quartile)",
+                "max": "Highest Value",
+            })
+
+            numeric_summary.index = numeric_summary.index.map(pretty)
+            numeric_summary.index.name = "Numeric Feature"
+
+            st.dataframe(numeric_summary, use_container_width=True)
         else:
             st.info("No numeric columns found for overall summary.")
 
         # ---- Numeric vs Target: U-Stats, Cliff's Delta, VIF ----
-        st.markdown("#### Numeric Features vs Target (U-Stats, Cliff's Delta, VIF)")
+        st.markdown("#### Numeric Features vs Subscription Outcome (Group Differences)")
 
-        # Effect sizes vs target
         num_effects = compute_numeric_effects_vs_target(df, numeric_cols, target_col=target_col)
 
-        # VIF for numeric features
+        # VIF for numeric features (not currently displayed, but computed here if you want it later)
         vif_df = compute_vif(df, numeric_cols)
-        vif_map = dict(zip(vif_df["feature"], vif_df["VIF"])) if not vif_df.empty else {}
 
         if not num_effects.empty:
-            # Attach VIF to the numeric effects table
+            # figure out the two target labels used inside compute_numeric_effects_vs_target
+            groups = df[target_col].dropna().unique()
+            g1, g2 = groups[0], groups[1]
+
             num_effects_fmt = sci_notation(
                 num_effects,
                 cols=["U_stat", "U_p_value", "cliffs_delta"]
+            ).rename(columns={
+                f"mean({target_col}={g1})": f"Average (y = {g1})",
+                f"mean({target_col}={g2})": f"Average (y = {g2})",
+                "U_stat": "Mann–Whitney Score (Group Difference)",
+                "U_p_value": "P-Value (Chance this is random)",
+                "cliffs_delta": "Effect Size (How different are groups?)",
+            })
+
+            # Make feature names friendly
+            num_effects_fmt["feature"] = num_effects_fmt["feature"].apply(pretty)
+
+            st.dataframe(
+                num_effects_fmt.set_index("feature").rename_axis("Numeric Feature"),
+                use_container_width=True
             )
-
-            st.dataframe(num_effects_fmt.set_index("feature"), use_container_width=True)
-
         else:
             st.info(
-                "Could not compute U-Stats / Cliff's Delta. "
-                "Ensure the target is binary and numeric features exist."
+                "Could not compute group-difference statistics. "
+                "Make sure the target column is binary and numeric features exist."
             )
 
         # ---- Categorical vs Target: Cramér's V ----
-        st.markdown("#### Categorical Features vs Target (Cramér's V)")
+        st.markdown("#### Categorical Features vs Subscription Outcome (Association Strength)")
 
         if categorical_cols:
             cramers_df = compute_cramers_v(df, categorical_cols, target_col=target_col)
+
             if not cramers_df.empty:
                 cramers_fmt = sci_notation(
                     cramers_df,
                     cols=["chi2_p_value"]
+                ).rename(columns={
+                    "cramers_v": "Association Strength (0 = none, 1 = strong)",
+                    "chi2_p_value": "P-Value (Chance this is random)",
+                })
+
+                cramers_fmt["feature"] = cramers_fmt["feature"].apply(pretty)
+
+                st.dataframe(
+                    cramers_fmt.set_index("feature").rename_axis("Categorical Feature"),
+                    use_container_width=True
                 )
-
-                st.dataframe(cramers_fmt.set_index("feature"), use_container_width=True)
-
             else:
-                st.info("No valid categorical features for Cramér's V (need at least 2 levels and 2 target levels).")
+                st.info(
+                    "No valid categorical features for association testing "
+                    "(need at least 2 category levels and 2 outcome levels)."
+                )
         else:
-            st.info("No categorical columns found for Cramér's V.")
+            st.info("No categorical columns found for association testing.")
+
 
     # ===================== 2D SCATTER ===================== #
     elif tab_choice == "2D Scatter":
