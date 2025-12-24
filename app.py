@@ -463,6 +463,10 @@ def main():
 
     # ===================== MODEL PLAYGROUND ===================== #
     elif tab_choice == "Model":
+        for k in list(st.session_state.keys()):
+            if k.startswith("model_"):
+                del st.session_state[k]
+
         st.subheader("🤖 Model Playground: What-if Prediction")
         st.markdown("The Model Playground enables users to experiment with predictive modeling using an imaginary customer profile. "
                     "All sliders and dropdowns correspond to the same preprocessed features used during model training, ensuring consistent inference. "
@@ -470,13 +474,8 @@ def main():
                     "This page serves as an interactive “what-if” tool, helping users understand how individual variables influence model predictions and allowing them to test different scenarios without exposing any real training data.")
 
         st.markdown(
-            """
-            Create an **imaginary customer** and let the pre-trained MLP model
-            predict whether they would subscribe (`y`).
+        # Create an **imaginary customer** and let the pre-trained MLP model predict whether they would subscribe (`y`).
 
-            The model uses the same preprocessing as your training pipeline
-            (`add_time_bins`, one-hot encoding, scaling).
-            """
         )
 
         # Load pre-trained MLP + encoder
@@ -490,7 +489,7 @@ def main():
             )
             st.stop()
 
-        # Use the preprocessed df schema: this matches what encoder expects
+        # Use the preprocessed df schema to match what encoder expects
         target_col = "y"
         feature_cols = [c for c in df_2.columns if c != target_col]
 
