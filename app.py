@@ -536,7 +536,17 @@ def main():
                     if not unique_vals:
                         user_val = st.text_input(display_name, "", key=key_base)
                     else:
-                        user_val = st.selectbox(display_name, unique_vals, index=0, key=key_base)
+                        # Map pretty label -> raw value
+                        option_map = {pretty(v): v for v in unique_vals}
+
+                        user_label = st.selectbox(
+                            label=display_name,
+                            options=option_map.keys(),
+                            index=0,
+                            key=key_base,
+                        )
+                        # Recover raw value for the model
+                        user_val = option_map[user_label]
 
             user_inputs[col] = user_val
 
